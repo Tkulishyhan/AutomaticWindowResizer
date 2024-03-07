@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-  # Specify the encoding used (UTF-8)
+import os  # Add this line to import the os library
 import tkinter as tk  # Import the Tkinter library for GUI development
 from tkinter import messagebox  # Import the messagebox class from Tkinter for pop-up messages
 import configparser  # Import the configparser library for handling settings files
@@ -14,6 +15,17 @@ root.geometry("400x300")  # Set the startup size of the GUI window
 # Safe to create Tkinter variables for GUI feedback
 window_info_var = tk.StringVar(value="No window selected. Press 'Select Window' and then F3.")  # Variable for window info display
 f3_listen_flag = False  # Flag to control the F3 listening, used to activate or deactivate key listening
+
+# Function to scan and save window titles
+def scan_and_save_window_titles():
+    all_windows = gw.getAllWindows()  # Get all open windows
+    titles = [window.title for window in all_windows if window.title]  # List comprehension to collect all non-empty titles
+    filename = "window_titles.txt"  # Name of the file to save titles
+    with open(filename, "w", encoding="utf-8") as f:  # Open file in write mode
+        for title in titles:
+            f.write(f"{title}\n")  # Write each title on a new line
+    message_text.insert(tk.END, f"Window titles have been saved to {os.path.abspath(filename)}\n")  # Show the path of saved file in GUI
+
 
 # Function called when a key press is detected
 def on_press(key):
@@ -97,6 +109,11 @@ select_window_button.pack(pady=5)
 
 arrange_button = tk.Button(root, text="Rearrange Windows", command=arrange_windows)  # Button to apply saved window arrangements
 arrange_button.pack(pady=10)
+
+# Button to scan and save window titles
+scan_titles_button = tk.Button(root, text="Scan and Save Window Titles", command=scan_and_save_window_titles)
+scan_titles_button.pack(pady=5)
+
 
 # Text widget for messages and its Scrollbar
 message_frame = tk.Frame(root)  # Frame to contain the message text widget and its scrollbar
