@@ -20,8 +20,9 @@ AutomaticWindowResizer 是一個基於 Python 的工具，使用 Tkinter 庫開�
    cd AutomaticWindowResizer
 ## 使用方法
 
-要運行程序，請在終端中執行以下命令：
+*使用python運行程序，請在終端中執行以下命令：
    python AutomaticWindowResizer.py
+*直接使用AutomaticWindowResizer.exe運行程序，請注意啟用"管理者模式"這樣可以避免一些問題。
 
 應用程式啟動後：
 
