@@ -1,128 +1,113 @@
-# -*- coding: utf-8 -*-
-import tkinter as tk
-from tkinter import messagebox
-import configparser
-import pygetwindow as gw
-from pynput import keyboard
-import pyautogui
+# -*- coding: utf-8 -*-  # Specify the encoding used (UTF-8)
+import tkinter as tk  # Import the Tkinter library for GUI development
+from tkinter import messagebox  # Import the messagebox class from Tkinter for pop-up messages
+import configparser  # Import the configparser library for handling settings files
+import pygetwindow as gw  # Import the PyGetWindow library for window management
+from pynput import keyboard  # Import the keyboard module from pynput for listening to keyboard events
+import pyautogui  # Import the PyAutoGUI library for GUI automation tasks
 
 # Initialize the Tkinter main window
 root = tk.Tk()
-root.title("Window Arranger v0.1 by S.A. Li")
-root.geometry("400x300")  # Set the startup size of the GUI window to 400x300
+root.title("Automatic Window Resizer 2024.3.7")  # Set the window title
+root.geometry("400x300")  # Set the startup size of the GUI window
 
-# Now it's safe to create Tkinter variables
-window_info_var = tk.StringVar(value="No window selected")
-instruction_var = tk.StringVar(value="Click 'Select Window' then press F3 to choose a window.")
-f3_listen_flag = False
+# Safe to create Tkinter variables for GUI feedback
+window_info_var = tk.StringVar(value="No window selected. Press 'Select Window' and then F3.")  # Variable for window info display
+f3_listen_flag = False  # Flag to control the F3 listening, used to activate or deactivate key listening
 
-# Key press listening callback function
+# Function called when a key press is detected
 def on_press(key):
-    global selected_window_info, f3_listen_flag
-    if f3_listen_flag and key == keyboard.Key.f3:  # Check the F3 key
-        x, y = pyautogui.position()  # Get the current mouse position
-        selected_windows = gw.getWindowsAt(x, y)
-        if selected_windows:
-            selected_window = selected_windows[0]
-            selected_window_info = {
-                'title': selected_window.title,
-                'width': selected_window.width,
-                'height': selected_window.height,
-                'x': selected_window.left,
-                'y': selected_window.top
+    global selected_window_info, f3_listen_flag  # Use global variables within function
+    if f3_listen_flag and key == keyboard.Key.f3:  # Check if the F3 key was pressed
+        x, y = pyautogui.position()  # Capture the current mouse position
+        selected_windows = gw.getWindowsAt(x, y)  # Get the window at the mouse position
+        if selected_windows:  # Check if any window was selected
+            selected_window = selected_windows[0]  # Take the first window found under cursor
+            selected_window_info = {  # Create a dictionary to hold the window's information
+                'title': selected_window.title,  # Window's title
+                'width': selected_window.width,  # Window's width
+                'height': selected_window.height,  # Window's height
+                'x': selected_window.left,  # Window's X position
+                'y': selected_window.top  # Window's Y position
             }
-            # Update the information of the selected window on the GUI
-            window_info_var.set(f"Title: {selected_window_info['title']}, Size: {selected_window_info['width']}x{selected_window_info['height']}, Position: ({selected_window_info['x']},{selected_window_info['y']})")
-            # Stop listening to the F3 key and immediately save the window information
-            f3_listen_flag = False
-            save_window_info()  # Call the save window information function immediately
+            # Update GUI with the selected window info
+            window_info_var.set(f"Selected: {selected_window_info['title']}")
+            f3_listen_flag = False  # Reset flag to stop listening to F3 key
+            save_window_info()  # Call function to save window configuration
 
-# Function to start listening to the F3 key
+# Function to enable F3 listening
 def start_listen_f3():
-    global f3_listen_flag
-    f3_listen_flag = True
-    #instruction_var.set("Press F3 Key to select window.")
-    message_text.delete('1.0', tk.END)  # Clear previous content
-    message_text.insert(tk.END, f"Press F3 Key to select window.")
+    global f3_listen_flag  # Use the global variable within function
+    f3_listen_flag = True  # Set the flag to True to start listening for F3 key
+    message_text.insert(tk.END, "Press F3 Key to select a window.\n")  # Show instruction in GUI
 
-# Start listening for key events
-listener = keyboard.Listener(on_press=on_press)
-listener.start()
+# Start listening for F3 key events
+listener = keyboard.Listener(on_press=on_press)  # Create a key listener
+listener.start()  # Start the listener
 
-# Function to save window information
+# Function to save window configuration
 def save_window_info():
-    global selected_window_info
-    if selected_window_info:
-        # Get the configuration file
-        config = configparser.ConfigParser()
-        config.read('mw.ini', encoding='utf-8')
+    global selected_window_info  # Use the global variable within function
+    if selected_window_info:  # Check if there is information to save
+        config = configparser.ConfigParser()  # Create a configuration parser object
+        config.read('mw.ini', encoding='utf-8')  # Read existing configuration from file
+        section_name = f"Window-{len(config.sections()) + 1}"  # Generate a new section name
+        if not config.has_section(section_name):  # Check if the section already exists
+            config.add_section(section_name)  # If not, add a new section
+        # Update configuration settings with the selected window's information
+        for key, value in selected_window_info.items():
+            config.set(section_name, key, str(value))  # Set each item in the section
+        with open('mw.ini', 'w', encoding='utf-8') as configfile:  # Open the config file for writing
+            config.write(configfile)  # Write the updated configuration back to file
+        # Feedback to user via GUI
+        message_text.insert(tk.END, f"Saved settings for '{selected_window_info['title']}' under [{section_name}].\n")
 
-        # Create a unique section name for the new window
-        new_section_index = 1 + len(config.sections())  # Create a new index by adding the existing number of sections
-        section_name = f"Window{new_section_index}"  # Create a section name based on the new index
+        window_info_var.set("Configuration saved. Select another window or rearrange.")  # Update GUI with feedback
+        selected_window_info = None  # Clear the saved window information for next selection
 
-        # Add or update window information
-        if not config.has_section(section_name):
-            config.add_section(section_name)
-        config.set(section_name, 'title', selected_window_info['title'])
-        config.set(section_name, 'width', str(selected_window_info['width']))
-        config.set(section_name, 'height', str(selected_window_info['height']))
-        config.set(section_name, 'x', str(selected_window_info['x']))
-        config.set(section_name, 'y', str(selected_window_info['y']))
-
-        # Write back to the configuration file
-        with open('mw.ini', 'w', encoding='utf-8') as configfile:
-            config.write(configfile)
-        # Update the Text widget to display the success message
-        message_text.delete('1.0', tk.END)  # Clear previous content
-        message_text.insert(tk.END, f"Window parameters for '{selected_window_info['title']}' have been saved under section [{section_name}] in mw.ini file.")
-
-        window_info_var.set("No window selected")  # Clear the displayed window information
-        selected_window_info = None  # Clear the saved window information
-
-# Function to arrange windows based on saved settings
+# Function to rearrange windows based on saved settings
 def arrange_windows():
-    config = configparser.ConfigParser()
-    config.read('mw.ini', encoding='utf-8')
+    config = configparser.ConfigParser()  # Create a new configuration parser object
+    config.read('mw.ini', encoding='utf-8')  # Read the configuration from file
+    # Apply each saved window configuration
+    for section in config.sections():  # Iterate through each section in the configuration
+        if config.has_option(section, 'title'):  # Check if the section has a 'title' option
+            apply_window_settings(config, section)  # Call function to apply settings for this window
 
-    for section in config.sections():
-        if config.has_option(section, 'title'):
-            window_title = config.get(section, 'title')
-            new_width = config.getint(section, 'width')
-            new_height = config.getint(section, 'height')
-            x = config.getint(section, 'x')
-            y = config.getint(section, 'y')
-
-            windows_with_title = gw.getWindowsWithTitle(window_title)
-            for win in windows_with_title:
-                if win.title == window_title:  # Ensure it's the correct window
-                    win.size = (new_width, new_height)
-                    win.moveTo(x, y)
-                    break  # Stop searching after finding the matching window
+# Applies window settings from the configuration
+def apply_window_settings(config, section):
+    window_title = config.get(section, 'title')  # Get the window title from configuration
+    width = config.getint(section, 'width')  # Get the width
+    height = config.getint(section, 'height')  # Get the height
+    x = config.getint(section, 'x')  # Get the X position
+    y = config.getint(section, 'y')  # Get the Y position
+    windows_with_title = gw.getWindowsWithTitle(window_title)  # Get all windows with this title
+    for win in windows_with_title:  # Iterate through found windows
+        if win.title == window_title:  # Ensure it's the correct window
+            win.resizeTo(width, height)  # Change the window's size
+            win.moveTo(x, y)  # Move the window to the specified position
+            break  # Stop after the first match to avoid affecting multiple windows with the same title
 
 # GUI setup
-instruction_label = tk.Label(root, textvariable=instruction_var)
+instruction_label = tk.Label(root, textvariable=window_info_var)  # Label for instructions
 instruction_label.pack(pady=5)
 
-select_window_button = tk.Button(root, text="Select Window", command=start_listen_f3)
+select_window_button = tk.Button(root, text="Select Window", command=start_listen_f3)  # Button to activate F3 listening
 select_window_button.pack(pady=5)
 
-info_label = tk.Label(root, textvariable=window_info_var, wraplength=380)
-info_label.pack(pady=10)
-
-arrange_button = tk.Button(root, text="Arrange Windows", command=arrange_windows)
+arrange_button = tk.Button(root, text="Rearrange Windows", command=arrange_windows)  # Button to apply saved window arrangements
 arrange_button.pack(pady=10)
 
-# Create a frame for the message Text widget and its Scrollbar
-message_frame = tk.Frame(root)
+# Text widget for messages and its Scrollbar
+message_frame = tk.Frame(root)  # Frame to contain the message text widget and its scrollbar
 message_frame.pack(fill=tk.BOTH, expand=True)
-message_text = tk.Text(message_frame, height=4, width=50)
-scroll = tk.Scrollbar(message_frame, command=message_text.yview)
-message_text.configure(yscrollcommand=scroll.set)
+message_text = tk.Text(message_frame, height=5, width=50)  # Text widget for feedback messages
+scroll = tk.Scrollbar(message_frame, command=message_text.yview)  # Scrollbar for the text widget
+message_text.configure(yscrollcommand=scroll.set)  # Link scrollbar to text widget
 message_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
-root.mainloop()
+root.mainloop()  # Start the GUI event loop
 
-# Stop listening
+# Stop listening when the GUI is closed
 listener.stop()
